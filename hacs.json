@@ -1,0 +1,8 @@
+
+{
+  "name": "Replacements",
+  "zip_release": true,
+  "filename": "replacements.zip",
+  "domains": ["replacements", "sensor"],
+  "homeassistant": "0.109.0"
+}

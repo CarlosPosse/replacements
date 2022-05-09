@@ -1,0 +1,15 @@
+{
+  "domain": "replacements",
+  "name": "Replacement Sensor",
+  "version": "0.1.0",
+  "documentation": "",
+  "dependencies": [],
+  "codeowners": ["@cposse"],
+  "iot_class": "calculated",
+  "config_flow": false,
+  "requirements": [
+    "python-dateutil>=2.8.1",
+    "integrationhelper>=0.2.2",
+    "voluptuous>=0.12.1"
+  ]
+}
