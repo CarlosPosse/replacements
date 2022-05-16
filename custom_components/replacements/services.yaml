@@ -1,0 +1,26 @@
+renew_stock:
+  description: Set the new number of replacements in stock
+  target:
+    entity:
+      domain: sensor
+  fields:
+    stock:
+      description: number of replacement parts to define the new stock
+      example: "6"
+
+replace_action:
+  description: Signal a replacement has occurred, and a new date should be set according to the interval.
+  target:
+    entity:
+      domain: sensor
+  fields:
+
+set_date:
+  description: Set the replacement date to the intended.
+  target:
+    entity:
+      domain: sensor
+  fields:
+    new_date:
+      description: the new date to set
+      example: "2023-04-31"

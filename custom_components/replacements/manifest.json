@@ -4,7 +4,6 @@
   "version": "0.1.0",
   "documentation": "https://github.com/carlosposse/Replacements",
   "dependencies": [],
-  "config_flow": false,
   "codeowners": ["@carlosposse"],
   "iot_class": "calculated",
   "requirements": [
