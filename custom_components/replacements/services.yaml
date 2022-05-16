@@ -1,0 +1,26 @@
+renew_stock:
+  description: Set the new number of replacements in stock
+  fields:
+    entity_id:
+      description: Name(s) of replacements that will receive new stock.
+      example: "sensor.replace_cat_fountain_filter"
+    new_stock:
+      description: number of replacement parts to define the new stock
+      example: "6"
+
+replace_action:
+  description: Signal a replacement has occurred, and a new date should be set according to the interval.
+  fields:
+    entity_id:
+      description: Entity id of the replacement performed
+      example: "sensor.replace_cat_fountain_filter"
+
+set_date:
+  description: Set the replacement date to the intended.
+  fields:
+    entity_id:
+      description: Entity id of the replacement to set date
+      example: "sensor.replace_cat_fountain_filter"
+    new_date:
+      description: the new date to set
+      example: "2023-04-31"

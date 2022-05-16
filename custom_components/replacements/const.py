@@ -1,45 +1,53 @@
 """ Constants """
-from typing import Optional
-import voluptuous as vol
 from datetime import datetime
+from typing import Optional
+
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.const import CONF_NAME
+from homeassistant.helpers.config_validation import make_entity_service_schema
 
-
-# Base component constants
+# Integration definitions
+VERSION = "0.1.0"
 DOMAIN = "replacements"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "4.5.0"
 PLATFORM = "sensor"
-ISSUE_URL = ""
-ATTRIBUTION = "Sensor data calculated by Replace Sensor Integration"
-
-ATTR_DATE = "date"
-ATTR_DAYS_INTERVAL = "days_interval"
-ATTR_DAYS_REMAINING = "days_remaining"
-
-# Device classes
-SENSOR_DEVICE_CLASS = "connectivity"
+ISSUE_URL = "https://img.shields.io/github/issues/carlosposse/Replacements"
+ATTRIBUTION = "Data calculated by Replacements Integration"
 
 # Configuration
-CONF_SENSOR = "sensor"
 CONF_SENSORS = "sensors"
-CONF_ENABLED = "enabled"
-CONF_DATE = "date"
-CONF_DATE_TEMPLATE = "date_template"
-CONF_SOON = "days_as_soon"
+CONF_DAYS_INTERVAL = "days_interval"
+CONF_WEEKS_INTERVAL = "weeks_interval"
+CONF_SOON = "soon_interval"
 CONF_ICON_NORMAL = "icon_normal"
 CONF_ICON_SOON = "icon_soon"
 CONF_ICON_TODAY = "icon_today"
 CONF_ICON_EXPIRED = "icon_expired"
 CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 CONF_ID_PREFIX = "id_prefix"
-CONF_DATE_EXCLUSION_ERROR = "Configuration cannot include both `date` and `date_template`. configure ONLY ONE"
-CONF_DATE_REQD_ERROR = "Either `date` or `date_template` is Required"
+
+# Extra attributes
+ATTR_DATE = "date"
+ATTR_DAYS_INTERVAL = "days_interval"
+ATTR_WEEKS_INTERVAL = "weeks_interval"
+ATTR_SOON = "soon"
+ATTR_STOCK = "stock"
+
+# Services
+SERVICE_STOCK = "renew_stock"
+SERVICE_STOCK_SCHEMA = make_entity_service_schema({
+        vol.Required("new_stock"): int
+    })
+SERVICE_DATE = "set_date"
+SERVICE_DATE_SCHEMA = make_entity_service_schema({
+        vol.Required("new_date"): cv.string
+    })
+SERVICE_REPLACED = "replace_action"
+SERVICE_REPLACED_SCHEMA = make_entity_service_schema({})
 
 # Defaults
-DEFAULT_NAME = DOMAIN
-DEFAULT_SOON = 3
+DEFAULT_SOON = 1
 DEFAULT_ICON_NORMAL = "mdi:calendar-blank"
 DEFAULT_ICON_SOON = "mdi:calendar"
 DEFAULT_ICON_TODAY = "mdi:calendar-star"
@@ -47,20 +55,18 @@ DEFAULT_ICON_EXPIRED = "mdi:calendar-remove"
 DEFAULT_UNIT_OF_MEASUREMENT = "Days"
 DEFAULT_ID_PREFIX = "replace_"
 
-ICON = DEFAULT_ICON_NORMAL
+# Schema Exclusions
+GROUP_INTERVAL = "interval"
 
-def check_date(value):
-    try:
-        datetime.strptime(value, "%Y-%m-%d")
-        return value
-    except ValueError:
-        raise vol.Invalid(f"Invalid date: {value}")
+CONF_INTERVAL_EXCLUSION_ERROR = "Configuration cannot include both `days_interval` and `weeks_interval`. configure ONLY ONE"
+CONF_INTERVAL_REQD_ERROR = "Either `days_interval` or `weeks_interval` is Required"
 
-DATE_SCHEMA = vol.Schema(
+# Schema definitions
+INTERVAL_SCHEMA = vol.Schema(
     {
         vol.Required(
-            vol.Any(CONF_DATE,CONF_DATE_TEMPLATE,msg=CONF_DATE_REQD_ERROR)
-        ): object
+            vol.Any(CONF_DAYS_INTERVAL, CONF_WEEKS_INTERVAL, msg=CONF_INTERVAL_REQD_ERROR)
+        ): object,
     }, extra=vol.ALLOW_EXTRA
 )
 
@@ -68,9 +74,9 @@ SENSOR_CONFIG_SCHEMA = vol.All(
     vol.Schema(
         {
             vol.Required(CONF_NAME): cv.string,
-            vol.Exclusive(CONF_DATE, CONF_DATE, msg=CONF_DATE_EXCLUSION_ERROR): check_date,
-            vol.Exclusive(CONF_DATE_TEMPLATE, CONF_DATE, msg=CONF_DATE_EXCLUSION_ERROR): cv.string,
-            vol.Optional(CONF_SOON, default=DEFAULT_SOON): cv.positive_int,
+            vol.Exclusive(CONF_DAYS_INTERVAL, GROUP_INTERVAL, msg=CONF_INTERVAL_EXCLUSION_ERROR): cv.positive_int,
+            vol.Exclusive(CONF_WEEKS_INTERVAL, GROUP_INTERVAL, msg=CONF_INTERVAL_EXCLUSION_ERROR): cv.positive_int,
+            vol.Optional(CONF_SOON, DEFAULT_SOON): cv.positive_int,
             vol.Optional(CONF_ICON_NORMAL, default=DEFAULT_ICON_NORMAL): cv.icon,
             vol.Optional(CONF_ICON_SOON, default=DEFAULT_ICON_SOON): cv.icon,
             vol.Optional(CONF_ICON_TODAY, default=DEFAULT_ICON_TODAY): cv.icon,
@@ -81,7 +87,7 @@ SENSOR_CONFIG_SCHEMA = vol.All(
     )
 )
 
-SENSOR_SCHEMA = vol.All(SENSOR_CONFIG_SCHEMA, DATE_SCHEMA)
+SENSOR_SCHEMA = vol.All(SENSOR_CONFIG_SCHEMA, INTERVAL_SCHEMA)
 
 CONFIG_SCHEMA = vol.Schema(
     {

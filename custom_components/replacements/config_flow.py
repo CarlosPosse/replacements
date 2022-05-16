@@ -1,31 +1,18 @@
 """ Config flow """
+import uuid
 from collections import OrderedDict
-from homeassistant.core import callback
+from datetime import datetime
+
 import voluptuous as vol
 from homeassistant import config_entries
-from datetime import datetime
-import uuid
-
-from .const import (
-    DOMAIN,
-    DEFAULT_SOON,
-    DEFAULT_ICON_NORMAL,
-    DEFAULT_ICON_SOON,
-    DEFAULT_ICON_TODAY,
-    DEFAULT_ICON_EXPIRED,
-    DEFAULT_UNIT_OF_MEASUREMENT,
-    DEFAULT_ID_PREFIX,
-    CONF_SOON,
-    CONF_ICON_NORMAL,
-    CONF_ICON_SOON,
-    CONF_ICON_TODAY,
-    CONF_ICON_EXPIRED,
-    CONF_DATE,
-    CONF_UNIT_OF_MEASUREMENT,
-    CONF_ID_PREFIX
-)
-
 from homeassistant.const import CONF_NAME
+from homeassistant.core import callback
+
+from .const import (CONF_ICON_EXPIRED, CONF_ICON_NORMAL, CONF_ICON_SOON,
+                    CONF_ICON_TODAY, CONF_ID_PREFIX, CONF_UNIT_OF_MEASUREMENT,
+                    DEFAULT_ICON_EXPIRED, DEFAULT_ICON_NORMAL,
+                    DEFAULT_ICON_SOON, DEFAULT_ICON_TODAY, DEFAULT_ID_PREFIX,
+                    DEFAULT_UNIT_OF_MEASUREMENT, DOMAIN)
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -41,8 +28,6 @@ class ReplaceSensorFlowHandler(config_entries.ConfigFlow):
         self._errors = {}
         if user_input is not None:
             self._data.update(user_input)
-            if is_not_date(user_input[CONF_DATE]):
-                self._errors["base"] = "invalid_date"
             if self._errors == {}:
                 self.init_info = user_input
                 return await self.async_step_icons()
@@ -66,8 +51,6 @@ class ReplaceSensorFlowHandler(config_entries.ConfigFlow):
         if user_input is not None:
             if CONF_NAME in user_input:
                 name = user_input[CONF_NAME]
-            if CONF_DATE in user_input:
-                date = user_input[CONF_DATE]
             if CONF_UNIT_OF_MEASUREMENT in user_input:
                 unit_of_measurement = user_input[CONF_UNIT_OF_MEASUREMENT]
             if CONF_ID_PREFIX in user_input:
@@ -75,22 +58,18 @@ class ReplaceSensorFlowHandler(config_entries.ConfigFlow):
         
         data_schema = OrderedDict()
         data_schema[vol.Required(CONF_NAME, default=name)] = str
-        data_schema[vol.Required(CONF_DATE, default=date)] = str
         data_schema[vol.Required(CONF_UNIT_OF_MEASUREMENT, default=unit_of_measurement)] = str
         data_schema[vol.Optional(CONF_ID_PREFIX, default=id_prefix)] = str
 
         return self.async_show_form(step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors)
 
     async def _show_icon_form(self, user_input):
-        days_as_soon = DEFAULT_SOON
         icon_normal = DEFAULT_ICON_NORMAL
         icon_soon = DEFAULT_ICON_SOON
         icon_today = DEFAULT_ICON_TODAY
         icon_expired = DEFAULT_ICON_EXPIRED
 
         if user_input is not None:
-            if CONF_SOON in user_input:
-                days_as_soon = user_input[CONF_SOON]
             if CONF_ICON_NORMAL in user_input:
                 icon_normal = user_input[CONF_ICON_NORMAL]
             if CONF_ICON_SOON in user_input:
@@ -101,7 +80,6 @@ class ReplaceSensorFlowHandler(config_entries.ConfigFlow):
                 icon_expired = user_input[CONF_ICON_EXPIRED]
         
         data_schema = OrderedDict()
-        data_schema[vol.Required(CONF_SOON, default=days_as_soon)] = int
         data_schema[vol.Required(CONF_ICON_NORMAL, default=icon_normal)] = str
         data_schema[vol.Required(CONF_ICON_SOON, default=icon_soon)] = str
         data_schema[vol.Required(CONF_ICON_TODAY, default=icon_today)] = str
@@ -144,8 +122,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._errors = {}
         if user_input is not None:
             self._data.update(user_input)
-            if is_not_date(user_input[CONF_DATE]):
-                self._errors["base"] = "invalid_date"
             if self._errors == {}:
                 return await self.async_step_icons()
         return await self._show_init_form(user_input)
@@ -164,7 +140,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             unit_of_measurement = DEFAULT_UNIT_OF_MEASUREMENT
 
         data_schema[vol.Required(CONF_NAME,default=self.config_entry.options.get(CONF_NAME),)] = str
-        data_schema[vol.Required(CONF_DATE, default=self.config_entry.options.get(CONF_DATE),)] = str
         data_schema[vol.Required(CONF_UNIT_OF_MEASUREMENT,default=unit_of_measurement,)] = str
 
         return self.async_show_form(
@@ -173,7 +148,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _show_icon_form(self, user_input):
         data_schema = OrderedDict()
-        data_schema[vol.Required(CONF_SOON,default=self.config_entry.options.get(CONF_SOON),)] = int
         data_schema[vol.Required(CONF_ICON_NORMAL,default=self.config_entry.options.get(CONF_ICON_NORMAL),)] = str
         data_schema[vol.Required(CONF_ICON_SOON,default=self.config_entry.options.get(CONF_ICON_SOON),)] = str
         data_schema[vol.Required(CONF_ICON_TODAY,default=self.config_entry.options.get(CONF_ICON_TODAY),)] = str
