@@ -8,7 +8,7 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-Yes-brightgreen.svg)](https://github.com/carlosposse/Replacements/graphs/commit-activity)
 [![GitHub issues](https://img.shields.io/github/issues/carlosposse/Replacements)](https://github.com/carlosposse/Replacements/issues)
 
-The 'replacements' component is a Home Assistant custom sensor which counts down to a regular interval action, such as replacing the filter on a cat fountain.
+The 'Replacements' component is a Home Assistant custom sensor which counts down to a regular interval action, such as replacing the filter on a cat fountain.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ The 'replacements' component is a Home Assistant custom sensor which counts down
 ### MANUAL INSTALLATION
 
 1. Download the `replacements.zip` file from the
-   [latest release](https://github.com/carlosposse/replacements/releases/latest).
+   [latest release](https://github.com/carlosposse/Replacements/releases/latest).
 2. Unpack the release and copy the `custom_components/replacements` directory
    into the `custom_components` directory of your Home Assistant
    installation.
@@ -37,7 +37,7 @@ The 'replacements' component is a Home Assistant custom sensor which counts down
 ### INSTALLATION VIA HACS
 
 1. Ensure that [HACS](https://custom-components.github.io/hacs/) is installed.
-2. Search for and install the "replacements" integration.
+2. Search for and install the "Replacements" integration.
 3. Configure the `replacements` sensor.
 4. Restart Home Assistant.
 
@@ -57,10 +57,13 @@ Add `replacements` sensor in your `configuration.yaml`. The following example ad
 # Example configuration.yaml entry
 
 replacements:
-  sensors:
-  - name: Cat fountain filter
+  cat_fountain_filter:
+    name: Cat fountain filter
     weeks_interval: 2
-  - name: Heart pills
+    soon_interval: 1
+
+  heart_pills:
+    name: Heart pills
     days_interval: 16
 ```
 
@@ -68,12 +71,11 @@ replacements:
 
 |Parameter |Optional|Description
 |:----------|----------|------------
-| `name` | No | Friendly name
 |`days_interval` | Either `days_interval` or `weeks_interval` MUST be included | number of days between each replacement
 |`weeks_interval` | Either `days_interval` or `weeks_interval` MUST be included | number of weeks between each replacement
+| `name` | Yes | Friendly name
+| `soon_interval` | Yes | Days/weeks in advance to display the icon defined in `icon_soon`. It will be used as days if `days_interval` is used, or as weeks if `weeks_interval` is used. **Default**: 1
 | `unit_of_measurement` | Yes | Your choice of label N.B. The sensor always returns Days, but this option allows you to express this in the language of your choice without needing a customization
-| `id_prefix` | Yes | Your choice of prefix for the entity_id **Default**: `replace_` NB. the entity_id cannot be changed from within the integration once it has been created.  You must either delete your entity and re-create it or manually rename the entity_id on the configuration -> entities page
-| `days_as_soon` | Yes | Days in advance to display the icon defined in `icon_soon` **Default**: 3
 | `icon_normal` | Yes | Default icon **Default**:  `mdi:calendar-blank`
 | `icon_soon` | Yes | Icon if the replacement is 'soon' **Default**: `mdi:calendar`
 | `icon_today` | Yes | Icon if the replacement is today **Default**: `mdi:calendar-star`
@@ -83,13 +85,12 @@ replacements:
 
 ### State
 
-* The number of days/weeks/months remaining to the next occurance, or days elapsed since the action was due.
+* The number of days remaining to the next occurance, or days elapsed since the action was due.
 
 ### Attributes
 
 * date: the date of the next occurence
 * stock: the existing stock, i.e., the number of replacements parts available
-* weeks_remaining: The number of weeks until the replacement action
 * unit_of_measurement: 'Days' By default, this is displayed after the state. _this is NOT translate-able.  See below for work-around_
 
 ### Notes about unit of measurement

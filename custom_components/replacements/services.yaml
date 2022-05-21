@@ -1,3 +1,5 @@
+# Describes the format for available replacements services
+
 renew_stock:
   description: Set the new number of replacements in stock
   target:
@@ -13,7 +15,6 @@ replace_action:
   target:
     entity:
       domain: sensor
-  fields:
 
 set_date:
   description: Set the replacement date to the intended.

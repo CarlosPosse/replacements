@@ -12,7 +12,7 @@ PLATFORM = "sensor"
 VERSION = "0.1.0"
 
 DOMAIN_DATA = f"{DOMAIN}_data"
-ISSUE_URL = "https://img.shields.io/github/issues/carlosposse/Replacements"
+ISSUE_URL = "https://github.com/carlosposse/Replacements/issues"
 ATTRIBUTION = "Data calculated by Replacements Integration"
 
 # Configuration

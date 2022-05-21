@@ -1,6 +1,6 @@
 {
   "domain": "replacements",
-  "name": "Replacement Sensor",
+  "name": "Replacements",
   "version": "0.1.0",
   "documentation": "https://github.com/carlosposse/Replacements",
   "dependencies": [],

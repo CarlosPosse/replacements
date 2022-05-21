@@ -2,30 +2,45 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+import voluptuous as vol
 from typing import Any
+
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
-import voluptuous as vol
-from dateutil.relativedelta import relativedelta
-from homeassistant.components.sensor import (RestoreSensor,
-                                             SensorExtraStoredData)
-from homeassistant.const import (ATTR_ATTRIBUTION, ATTR_DATE, CONF_NAME,
-                                 CONF_UNIT_OF_MEASUREMENT)
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.sensor import RestoreSensor, SensorExtraStoredData
 from homeassistant.helpers import entity_platform
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import (ATTRIBUTION, CONF_DAYS_INTERVAL, CONF_ICON_EXPIRED,
-                    CONF_ICON_NORMAL, CONF_ICON_SOON, CONF_ICON_TODAY,
-                    CONF_SOON, CONF_WEEKS_INTERVAL, DEFAULT_SOON,
-                    DEFAULT_UNIT_OF_MEASUREMENT, PLATFORM)
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    ATTR_DATE,
+    ATTR_UNIT_OF_MEASUREMENT,
+    CONF_NAME,
+    CONF_UNIT_OF_MEASUREMENT,
+)
+
+from .const import (
+    ATTRIBUTION,
+    PLATFORM,
+    CONF_DAYS_INTERVAL,
+    CONF_ICON_EXPIRED,
+    CONF_ICON_NORMAL,
+    CONF_ICON_SOON,
+    CONF_ICON_TODAY,
+    CONF_SOON,
+    CONF_WEEKS_INTERVAL,
+    DEFAULT_SOON,
+    DEFAULT_UNIT_OF_MEASUREMENT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -299,8 +314,8 @@ class Replacement(RestoreSensor):
 
         # Return all other attributes
         res[ATTR_DATE] = self._date.strftime("%Y-%m-%d")
-        res[ATTR_SOON] = self._soon
         res[ATTR_STOCK] = self._stock
+        res[ATTR_UNIT_OF_MEASUREMENT] = self._unit_of_measurement
         return res
 
     @property

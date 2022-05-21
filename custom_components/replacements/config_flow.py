@@ -16,7 +16,7 @@ from .const import (CONF_ICON_EXPIRED, CONF_ICON_NORMAL, CONF_ICON_SOON,
 
 
 @config_entries.HANDLERS.register(DOMAIN)
-class ReplaceSensorFlowHandler(config_entries.ConfigFlow):
+class ReplacementsFlowHandler(config_entries.ConfigFlow):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self):

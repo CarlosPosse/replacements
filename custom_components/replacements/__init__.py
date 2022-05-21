@@ -1,4 +1,4 @@
-"""The replacements integration."""
+"""The Replacements integration."""
 import logging
 
 # from homeassistant import config_entries
