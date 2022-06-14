@@ -1,59 +1,46 @@
 """The Replacements integration."""
 import logging
 
-# from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.helpers import discovery
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
-from integrationhelper.const import CC_STARTUP_VERSION
 
 from .const import DOMAIN, ISSUE_URL, PLATFORM, VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up a replacement from YAML."""
 
-    # Get the integration reference inside hass
-    component = hass.data[DOMAIN] = EntityComponent(_LOGGER, DOMAIN, hass)
+    # # Get the integration reference inside hass
+    # hass.data[DOMAIN] = EntityComponent(_LOGGER, DOMAIN, hass)
 
-    # Make sure domain is declared in configuration.yaml
-    if DOMAIN not in config:
-        return True
+    # ## Setup all entities in yaml
 
-    # Log startup message
-    _LOGGER.info(
-        CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION, issue_link=ISSUE_URL)
-    )
+    # # Load every platform in the main loop (calls async_setup_platform)
+    # for entry in config[DOMAIN].items():
+    #     _LOGGER.debug("Setup %s.%s", DOMAIN, entry)
 
-    ## Setup all entities in yaml
+    #     hass.async_create_task(
+    #         discovery.async_load_platform(hass, PLATFORM, DOMAIN, entry, config)
+    #     )
 
-    # Load every platform in the main loop (calls async_setup_platform)
-    for entry in config[DOMAIN].items():
-        _LOGGER.debug("Setup %s.%s", DOMAIN, entry)
-
-        hass.async_create_task(
-            discovery.async_load_platform(
-                hass,
-                PLATFORM,
-                DOMAIN,
-                entry,
-                config
-            )
-        )
-        
-    # # Setup all entities in UI
+    ## Import all the yaml entries to the UI as well
     # hass.async_create_task(
     #     hass.config_entries.flow.async_init(
-    #         DOMAIN, context={"source": config_entries.SOURCE_IMPORT}, data={}
+    #         DOMAIN, context={"source": SOURCE_IMPORT}, data=config
     #     )
     # )
 
     # Setup has been successful
     return True
 
-#async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+
+# async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 #    """Handle migration of a previous version config entry."""
 #    _LOGGER.debug("Migrating from version %s", entry.version)
 #    data = {**entry.data}
@@ -66,27 +53,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 #        return False
 #    return True
 
-# async def async_setup_entry(hass, config_entry):
-#     """Set up this integration using UI."""
-#     if config_entry.source == config_entries.SOURCE_IMPORT:
-#         hass.async_create_task(hass.config_entries.async_remove(config_entry.entry_id))
-#         return False
-    
-#     _LOGGER.warning("SETUP ENTRY '%s'", config_entry.data)
 
-#     # log startup message
-#     _LOGGER.info(
-#         CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION, issue_link=ISSUE_URL)
-#     )
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up this integration using UI."""
+    # if entry.source == config_entries.SOURCE_IMPORT:
+    #     hass.async_create_task(hass.config_entries.async_remove(entry.entry_id))
+    #     return False
 
-#     config_entry.options = config_entry.data
-#     config_entry.add_update_listener(update_listener)
+    _LOGGER.warning("SETUP ENTRY '%s'", entry.data)
 
-#     # Add sensor
-#     hass.async_add_job(
-#         hass.config_entries.async_forward_entry_setup(config_entry, PLATFORM)
-#     )
-#     return True
+    # Store the entry under our domain to allow multiple entries
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = entry.data
+
+    # Forward the setup to the platform
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, PLATFORM)
+    )
+    return True
+
 
 # async def async_remove_entry(hass, config_entry):
 #     """Handle removal of an entry."""
@@ -94,15 +79,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 #     try:
 #         await hass.config_entries.async_forward_entry_unload(config_entry, PLATFORM)
-#         _LOGGER.info(
-#             "Successfully removed sensor from the Replacements integration"
-#         )
+#         _LOGGER.info("Successfully removed sensor from the Replacements integration")
 #     except ValueError:
 #         pass
 
 
-# async def update_listener(hass, entry):
-#     """Update listener."""
-#     entry.data = entry.options
-#     await hass.config_entries.async_forward_entry_unload(entry, PLATFORM)
-#     hass.async_add_job(hass.config_entries.async_forward_entry_setup(entry, PLATFORM))
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update listener."""
+    await hass.config_entries.async_reload(entry.entry_id)

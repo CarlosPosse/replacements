@@ -6,15 +6,17 @@ import voluptuous as vol
 from typing import Any
 
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import InvalidOperation
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
+from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.components.sensor import RestoreSensor, SensorExtraStoredData
 from homeassistant.helpers import entity_platform
+from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -25,10 +27,12 @@ from homeassistant.const import (
     ATTR_DATE,
     ATTR_UNIT_OF_MEASUREMENT,
     CONF_NAME,
+    CONF_UNIQUE_ID,
     CONF_UNIT_OF_MEASUREMENT,
 )
 
 from .const import (
+    DOMAIN,
     ATTRIBUTION,
     PLATFORM,
     CONF_DAYS_INTERVAL,
@@ -37,9 +41,8 @@ from .const import (
     CONF_ICON_SOON,
     CONF_ICON_TODAY,
     CONF_SOON,
+    CONF_PREFIX,
     CONF_WEEKS_INTERVAL,
-    DEFAULT_SOON,
-    DEFAULT_UNIT_OF_MEASUREMENT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +65,7 @@ SERVICE_REPLACED_SCHEMA = make_entity_service_schema({})
 ENTITY_ID_FORMAT = PLATFORM + ".{}"
 DATA_UPDATED = "replacements_updated"
 
+
 async def async_setup_platform(
     hass: HomeAssistant,
     config: ConfigType,
@@ -80,37 +84,10 @@ async def async_setup_platform(
 
     # Assign configuration attributes
     conf_unique_id, conf = discovery_info
-
-    conf_name = conf.get(CONF_NAME)
-    conf_days_interval = conf.get(CONF_DAYS_INTERVAL)
-    conf_weeks_interval = conf.get(CONF_WEEKS_INTERVAL)
-    conf_soon = conf.get(CONF_SOON)
-    if conf_soon is None:
-        conf_soon = DEFAULT_SOON
-    conf_unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT)
-    if conf_unit_of_measurement is None:
-        conf_unit_of_measurement = DEFAULT_UNIT_OF_MEASUREMENT
-    conf_icon_normal = conf.get(CONF_ICON_NORMAL)
-    conf_icon_soon = conf.get(CONF_ICON_SOON)
-    conf_icon_today = conf.get(CONF_ICON_TODAY)
-    conf_icon_expired = conf.get(CONF_ICON_EXPIRED)
-
-    # Instatiate a new entity
-    replacement = Replacement(
-        name=conf_name,
-        unique_id=conf_unique_id,
-        days_interval=conf_days_interval,
-        weeks_interval=conf_weeks_interval,
-        soon=conf_soon,
-        unit_of_measurement=conf_unit_of_measurement,
-        icon_normal=conf_icon_normal,
-        icon_soon=conf_icon_soon,
-        icon_today=conf_icon_today,
-        icon_expired=conf_icon_expired,
-    )
+    conf[CONF_UNIQUE_ID] = conf_unique_id
 
     # Add entity to the platform
-    async_add_entities([replacement])
+    async_add_entities([Replacement(conf)])
 
     # Get the platform reference
     platform = entity_platform.async_get_current_platform()
@@ -133,10 +110,46 @@ async def async_setup_platform(
     )
 
 
-# async def async_setup_entry(hass, config_entry, async_add_devices):
-#     """Setup an entry."""
-#     # Instantiate device and add to the platform
-#     async_add_devices([Replacement(hass, config_entry.data)], True)
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_entities,
+):
+    """Setup sensors from a config entry created in the integrations UI."""
+
+    # Instantiate device and add to the platform
+    config = hass.data[DOMAIN][config_entry.entry_id]
+
+    # Generate a unique ID for each entity
+    for entry in config[DOMAIN]:
+        entry[CONF_UNIQUE_ID] = generate_entity_id(
+            ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+        )
+
+    async_add_entities(
+        [Replacement(entry) for entry in config[DOMAIN]],
+        update_before_add=True,
+    )
+
+    # Get the platform reference
+    platform = entity_platform.async_get_current_platform()
+
+    ## Register all platform services
+
+    # Register the stock update service
+    platform.async_register_entity_service(
+        SERVICE_STOCK, SERVICE_STOCK_SCHEMA, "async_handle_renew_stock"
+    )
+
+    # Register the set date service
+    platform.async_register_entity_service(
+        SERVICE_DATE, SERVICE_DATE_SCHEMA, "async_handle_set_date"
+    )
+
+    # Register the replacement action service
+    platform.async_register_entity_service(
+        SERVICE_REPLACED, SERVICE_REPLACED_SCHEMA, "async_handle_replace_action"
+    )
 
 
 @dataclass
@@ -175,16 +188,6 @@ class ReplacementSensorExtraStoredData(SensorExtraStoredData):
             # last_period is corrupted
             return None
 
-        # # Initialize all variables
-        # stock = 0
-        # next_date = None
-
-        # if "stock" in restored:
-        #     stock = restored["stock"]
-
-        # if "next_date" in restored:
-        #     next_date: datetime | None = dt_util.parse_datetime(restored["next_date"])
-
         return cls(
             extra.native_value, extra.native_unit_of_measurement, stock, next_date
         )
@@ -193,43 +196,32 @@ class ReplacementSensorExtraStoredData(SensorExtraStoredData):
 class Replacement(RestoreSensor):
     """Representation of a replacement sensor."""
 
-    def __init__(
-        self,
-        name,
-        unique_id,
-        days_interval,
-        weeks_interval,
-        soon,
-        unit_of_measurement,
-        icon_normal,
-        icon_soon,
-        icon_today,
-        icon_expired,
-    ):
+    def __init__(self, replacement: dict[str, str]) -> None:
+        super().__init__()
+
         # Save all fields to identify the sensor
-        self.entity_id = ENTITY_ID_FORMAT.format(unique_id)
-        self._unique_id = unique_id
-        self._name = name
+        self._unique_id = replacement[CONF_UNIQUE_ID]
+        self.entity_id = ENTITY_ID_FORMAT.format(self._unique_id)
+        self._name = replacement[CONF_NAME]
 
         ## Initialize all parameters that might be in the configuration
 
         # Get required configuration, one of these two must be defined
         #  according to the schema
-        self._days_interval = days_interval
-        self._weeks_interval = weeks_interval
+        if CONF_DAYS_INTERVAL in replacement:
+            self._days_interval = replacement[CONF_DAYS_INTERVAL]
+            self._days_mode = True
+        else:
+            self._weeks_interval = replacement[CONF_WEEKS_INTERVAL]
+            self._days_mode = False
 
         # Get additional optional parameters
-        self._soon = soon
-        self._unit_of_measurement = unit_of_measurement
-        self._icon_normal = icon_normal
-        self._icon_soon = icon_soon
-        self._icon_today = icon_today
-        self._icon_expired = icon_expired
-
-        ## Automatic helper variables
-
-        # Define if we are in week or day mode
-        self._days_mode = not self._weeks_interval
+        self._soon = replacement[CONF_SOON]
+        self._unit_of_measurement = replacement[CONF_UNIT_OF_MEASUREMENT]
+        self._icon_normal = replacement[CONF_ICON_NORMAL]
+        self._icon_soon = replacement[CONF_ICON_SOON]
+        self._icon_today = replacement[CONF_ICON_TODAY]
+        self._icon_expired = replacement[CONF_ICON_EXPIRED]
 
         # Initialize the icon variable to the normal icon
         self._icon = self._icon_normal
@@ -243,7 +235,7 @@ class Replacement(RestoreSensor):
 
     def _calculate_new_date(self):
         """Calculate a new replacement date according to the defined interval"""
-        
+
         # Calculate the new date according to the interval
         if self._days_mode:
             next_date = date.today() + relativedelta(days=self._days_interval)
@@ -371,7 +363,8 @@ class Replacement(RestoreSensor):
         self._calculate_new_date()
 
         # Decrement the stock
-        self._stock = self._stock - 1
+        if self._stock > 0:
+            self._stock = self._stock - 1
 
         # Update the core state
         await self.async_update_ha_state()
