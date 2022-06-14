@@ -8,7 +8,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7]
+        python-version: [3.9.12]
 
     steps:
       - uses: actions/checkout@v1
@@ -22,7 +22,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.test.txt
+          pip install -r requirements_dev.txt
+          pip install -r requirements_test.txt
       - name: Run pytest
         run: |
           pytest
