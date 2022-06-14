@@ -1,13 +1,14 @@
 """ Constants """
 import voluptuous as vol
+
 from homeassistant.const import CONF_NAME, CONF_PREFIX, CONF_UNIT_OF_MEASUREMENT
 from homeassistant.helpers import config_validation as cv
 
 # Integration definitions
-COMPONENT_NAME="Replacements"
+COMPONENT_NAME = "Replacements"
 DOMAIN = "replacements"
 PLATFORM = "sensor"
-VERSION = "0.1.0"
+VERSION = "1.0.0"
 
 DOMAIN_DATA = f"{DOMAIN}_data"
 ISSUE_URL = "https://github.com/carlosposse/Replacements/issues"

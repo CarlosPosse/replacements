@@ -1,36 +1,23 @@
 """Tests for the config flow."""
 from unittest import mock
 
-from homeassistant import config_entries, data_entry_flow
-from homeassistant.const import CONF_NAME
-
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry, patch
 
 from custom_components.replacements import config_flow
-from custom_components.replacements.const import (
-    COMPONENT_NAME,
-    DOMAIN,
+from homeassistant import config_entries  # , data_entry_flow
+
+from .const import MOCK_CONFIG_DAYS_ANOTHER  # , MOCK_CONFIG_WEEKS
+
+from custom_components.replacements.const import (  # CONF_PREFIX,; CONF_UNIT_OF_MEASUREMENT,; CONF_ICON_EXPIRED,; CONF_ICON_NORMAL,; CONF_ICON_SOON,; CONF_ICON_TODAY,; CONF_ADD_ANOTHER,; DEFAULT_SOON,; DEFAULT_PREFIX,; DEFAULT_UNIT_OF_MEASUREMENT,; DEFAULT_ICON_NORMAL,; DEFAULT_ICON_SOON,; DEFAULT_ICON_TODAY,; DEFAULT_ICON_EXPIRED, COMPONENT_NAME,
     CONF_DAYS_INTERVAL,
-    CONF_WEEKS_INTERVAL,
     CONF_SOON,
-    # CONF_PREFIX,
-    # CONF_UNIT_OF_MEASUREMENT,
-    # CONF_ICON_EXPIRED,
-    # CONF_ICON_NORMAL,
-    # CONF_ICON_SOON,
-    # CONF_ICON_TODAY,
-    # CONF_ADD_ANOTHER,
-    # DEFAULT_SOON,
-    # DEFAULT_PREFIX,
-    # DEFAULT_UNIT_OF_MEASUREMENT,
-    # DEFAULT_ICON_NORMAL,
-    # DEFAULT_ICON_SOON,
-    # DEFAULT_ICON_TODAY,
-    # DEFAULT_ICON_EXPIRED,
+    CONF_WEEKS_INTERVAL,
+    DOMAIN,
 )
 
-from .const import MOCK_CONFIG_DAYS_ANOTHER, MOCK_CONFIG_WEEKS
+
+# from homeassistant.const import CONF_NAME
+# from pytest_homeassistant_custom_component.common import MockConfigEntry, patch
 
 
 async def test_config_flow(hass):
@@ -132,16 +119,16 @@ async def test_flow_user_add_another(hass):
     assert expected == result
 
 
-async def test_flow_user_creates_config_entry(hass):
-    """Test the config entry is successfully created."""
-    result = await hass.config_entries.flow.async_init(
-        config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
+# async def test_flow_user_creates_config_entry(hass):
+#     """Test the config entry is successfully created."""
+#     result = await hass.config_entries.flow.async_init(
+#         config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
+#     )
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        user_input=MOCK_CONFIG_WEEKS,
-    )
+#     result = await hass.config_entries.flow.async_configure(
+#         result["flow_id"],
+#         user_input=MOCK_CONFIG_WEEKS,
+#     )
 
 
 # expected = {

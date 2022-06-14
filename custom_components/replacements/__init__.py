@@ -1,9 +1,9 @@
 """The Replacements integration."""
 import logging
 
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.helpers import discovery
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
@@ -29,14 +29,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     #         discovery.async_load_platform(hass, PLATFORM, DOMAIN, entry, config)
     #     )
 
-    ## Import all the yaml entries to the UI as well
+    # # Import all the yaml entries to the UI as well
     # hass.async_create_task(
     #     hass.config_entries.flow.async_init(
     #         DOMAIN, context={"source": SOURCE_IMPORT}, data=config
     #     )
     # )
 
-    # Setup has been successful
+    # # Setup has been successful
     return True
 
 
