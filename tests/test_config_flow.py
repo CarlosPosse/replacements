@@ -1,23 +1,30 @@
 """Tests for the config flow."""
 from unittest import mock
 
+from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
+from homeassistant.helpers.entity import generate_entity_id
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry, patch
 
 from custom_components.replacements import config_flow
-from homeassistant import config_entries  # , data_entry_flow
-
-from .const import MOCK_CONFIG_DAYS_ANOTHER  # , MOCK_CONFIG_WEEKS
-
-from custom_components.replacements.const import (  # CONF_PREFIX,; CONF_UNIT_OF_MEASUREMENT,; CONF_ICON_EXPIRED,; CONF_ICON_NORMAL,; CONF_ICON_SOON,; CONF_ICON_TODAY,; CONF_ADD_ANOTHER,; DEFAULT_SOON,; DEFAULT_PREFIX,; DEFAULT_UNIT_OF_MEASUREMENT,; DEFAULT_ICON_NORMAL,; DEFAULT_ICON_SOON,; DEFAULT_ICON_TODAY,; DEFAULT_ICON_EXPIRED, COMPONENT_NAME,
+from custom_components.replacements.const import (
+    COMPONENT_NAME,
     CONF_DAYS_INTERVAL,
+    CONF_PREFIX,
     CONF_SOON,
     CONF_WEEKS_INTERVAL,
     DOMAIN,
 )
+from custom_components.replacements.sensor import ENTITY_ID_FORMAT
 
-
-# from homeassistant.const import CONF_NAME
-# from pytest_homeassistant_custom_component.common import MockConfigEntry, patch
+from .const import (
+    MOCK_CONFIG_ADDITIONAL,
+    MOCK_CONFIG_DAYS,
+    MOCK_CONFIG_ERROR,
+    MOCK_CONFIG_SMALL,
+    MOCK_CONFIG_WEEKS,
+)
 
 
 async def test_config_flow(hass):
@@ -29,7 +36,7 @@ async def test_config_flow(hass):
     )
 
     expected = {
-        "data_schema": config_flow.DATA_SCHEMA,
+        "data_schema": config_flow.ENTRY_SCHEMA,
         "description_placeholders": None,
         "errors": {},
         "flow_id": mock.ANY,
@@ -92,22 +99,17 @@ def test_validate_soon_invalid():
 
 async def test_flow_user_add_another(hass):
     """Test we show the user flow again if the add_another box was checked."""
-    _result = await hass.config_entries.flow.async_init(
+    result = await hass.config_entries.flow.async_init(
         config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # test_input = []
-    # test_input = MOCK_CONFIG_DAYS_ANOTHER
-    # test_input[DOMAIN] = []
-    # test_input[DOMAIN].append(MOCK_CONFIG_DAYS_ANOTHER)
-
     result = await hass.config_entries.flow.async_configure(
-        _result["flow_id"],
-        user_input=MOCK_CONFIG_DAYS_ANOTHER,
+        result["flow_id"],
+        user_input=MOCK_CONFIG_DAYS,
     )
 
     expected = {
-        "data_schema": config_flow.DATA_SCHEMA,
+        "data_schema": config_flow.ENTRY_SCHEMA,
         "description_placeholders": None,
         "errors": {},
         "flow_id": mock.ANY,
@@ -119,151 +121,253 @@ async def test_flow_user_add_another(hass):
     assert expected == result
 
 
-# async def test_flow_user_creates_config_entry(hass):
-#     """Test the config entry is successfully created."""
-#     result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
-#     )
+async def test_flow_user_creates_config_entry(hass):
+    """Test the config entry is successfully created."""
+    result = await hass.config_entries.flow.async_init(
+        config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
 
-#     result = await hass.config_entries.flow.async_configure(
-#         result["flow_id"],
-#         user_input=MOCK_CONFIG_WEEKS,
-#     )
+    # We patch the setup_entry function as we are just testing the config flow,
+    #  not the actual setup itself
+    with patch(
+        "custom_components.replacements.async_setup_entry",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input=MOCK_CONFIG_SMALL,
+        )
+        await hass.async_block_till_done()
 
-
-# expected = {
-#     "version": 1,
-#     "type": "create_entry",
-#     "flow_id": mock.ANY,
-#     "handler": DOMAIN,
-#     "title": COMPONENT_NAME,
-#     # "data": {
-#     #     "access_token": "token",
-#     #     "repositories": [
-#     #         {"path": "home-assistant/core", "name": "home-assistant/core"}
-#     #     ],
-#     # },
-#     "data": mock.ANY,
-#     "description": None,
-#     "description_placeholders": None,
-#     "result": mock.ANY,
-# }
-# assert expected == result
-
-# # If a user were to enter `test_username` for username and `test_password`
-# # for password, it would result in this function call
-# # for config in MOCK_CONFIG:
-# result = await hass.config_entries.flow.async_configure(
-#     result["flow_id"], user_input=MOCK_CONFIG
-# )
-
-# # Check that the config flow is complete and a new entry is created with
-# # the input data
-# assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
-# assert result["title"] == COMPONENT_NAME
-# assert result["data"] == MOCK_CONFIG
-# assert result["result"]
+    expected = {
+        "version": 1,
+        "type": "create_entry",
+        "flow_id": mock.ANY,
+        "handler": DOMAIN,
+        "title": COMPONENT_NAME,
+        "data": mock.ANY,
+        "description": None,
+        "description_placeholders": None,
+        "options": {},
+        "result": mock.ANY,
+    }
+    assert expected == result
 
 
-# @patch("custom_components.github_custom.config_flow.validate_auth")
-# async def test_flow_user_init_invalid_auth_token(m_validate_auth, hass):
-#     """Test errors populated when auth token is invalid."""
-#     m_validate_auth.side_effect = ValueError
-#     _result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "user"}
-#     )
-#     result = await hass.config_entries.flow.async_configure(
-#         _result["flow_id"], user_input={CONF_ACCESS_TOKEN: "bad"}
-#     )
-#     assert {"base": "auth"} == result["errors"]
+async def test_flow_user_creates_config_entry_multiple(hass):
+    """Test the config entry is successfully created."""
+    result = await hass.config_entries.flow.async_init(
+        config_flow.DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    flow_id = result["flow_id"]
+
+    # Configure multiple entities using the config flow
+    result = await hass.config_entries.flow.async_configure(
+        flow_id,
+        user_input=MOCK_CONFIG_DAYS,
+    )
+
+    # We patch the setup_entry function as we are just testing the config flow,
+    #  not the actual setup itself
+    with patch(
+        "custom_components.replacements.async_setup_entry",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            flow_id,
+            user_input=MOCK_CONFIG_WEEKS,
+        )
+        await hass.async_block_till_done()
+
+    expected = {
+        "version": 1,
+        "type": "create_entry",
+        "flow_id": mock.ANY,
+        "handler": DOMAIN,
+        "title": COMPONENT_NAME,
+        "data": mock.ANY,
+        "description": None,
+        "description_placeholders": None,
+        "options": {},
+        "result": mock.ANY,
+    }
+    assert expected == result
 
 
-# @patch("custom_components.github_custom.config_flow.validate_auth")
-# async def test_flow_user_init_data_valid(m_validate_auth, hass):
-#     """Test we advance to the next step when data is valid."""
-#     _result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "user"}
-#     )
-#     result = await hass.config_entries.flow.async_configure(
-#         _result["flow_id"], user_input={CONF_ACCESS_TOKEN: "bad"}
-#     )
-#     assert "repo" == result["step_id"]
-#     assert "form" == result["type"]
+async def test_options_flow_init(hass):
+    """Test config flow options."""
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(MOCK_CONFIG_DAYS)
+    test_data[DOMAIN].append(MOCK_CONFIG_WEEKS)
+
+    # Generate all the entity IDs
+    expected_entities = []
+    for entry in test_data[DOMAIN]:
+        expected_entities.append(
+            generate_entity_id(
+                ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+            )
+        )
+
+    # Generate a config entry
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="config_entry_test",
+        data=test_data,
+    )
+
+    # Add the entry to home assistant
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Show initial options form
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    # Test for correct form
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+    assert result["errors"] == {}
+
+    # Test that the multi-select options has the configured replacements
+    for entity in expected_entities:
+        assert entity in result["data_schema"].schema[DOMAIN].options
 
 
-# async def test_flow_repo_init_form(hass):
-#     """Test the initialization of the form in the second step of the config flow."""
-#     result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "repo"}
-#     )
-#     expected = {
-#         "data_schema": config_flow.REPO_SCHEMA,
-#         "description_placeholders": None,
-#         "errors": {},
-#         "flow_id": mock.ANY,
-#         "handler": "github_custom",
-#         "step_id": "repo",
-#         "type": "form",
-#     }
-#     assert expected == result
+async def test_options_flow_add_replacement(hass):
+    """Test config flow options."""
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(MOCK_CONFIG_DAYS)
+    test_data[DOMAIN].append(MOCK_CONFIG_WEEKS)
+
+    # Generate all the entity IDs
+    expected_entities = []
+    for entry in test_data[DOMAIN]:
+        expected_entities.append(
+            generate_entity_id(
+                ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+            )
+        )
+
+    # Generate a config entry
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="config_entry_test",
+        data=test_data,
+    )
+
+    # Add the entry to home assistant
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Show initial options form
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    # Add a new entry
+    add_data = {DOMAIN: expected_entities}
+    add_data.update(MOCK_CONFIG_ADDITIONAL)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input=add_data,
+    )
+    assert result["type"] == "create_entry"
+    assert result["title"] == COMPONENT_NAME
+    assert result["result"] is True
+    assert result["data"] == {
+        DOMAIN: [MOCK_CONFIG_ADDITIONAL, MOCK_CONFIG_DAYS, MOCK_CONFIG_WEEKS]
+    }
 
 
-# async def test_flow_repo_path_invalid(hass):
-#     """Test errors populated when path is invalid."""
-#     _result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "repo"}
-#     )
-#     result = await hass.config_entries.flow.async_configure(
-#         _result["flow_id"], user_input={CONF_NAME: "bad", CONF_PATH: "bad"}
-#     )
-#     assert {"base": "invalid_path"} == result["errors"]
+async def test_options_flow_add_error_replacement(hass):
+    """Test config flow options."""
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(MOCK_CONFIG_DAYS)
+    test_data[DOMAIN].append(MOCK_CONFIG_WEEKS)
+
+    # Generate all the entity IDs
+    expected_entities = []
+    for entry in test_data[DOMAIN]:
+        expected_entities.append(
+            generate_entity_id(
+                ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+            )
+        )
+
+    # Generate a config entry
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="config_entry_test",
+        data=test_data,
+    )
+
+    # Add the entry to home assistant
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Show initial options form
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    # Add a new entry
+    add_data = {DOMAIN: expected_entities}
+    add_data.update(MOCK_CONFIG_ERROR)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input=add_data,
+    )
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+    assert result["errors"] == {"base": "invalid_soon"}
+
+    # # Test that the multi-select options has the configured replacements
+    for entity in expected_entities:
+        assert entity in result["data_schema"].schema[DOMAIN].options
 
 
-# async def test_flow_repo_add_another(hass):
-#     """Test we show the repo flow again if the add_another box was checked."""
-#     config_flow.GithubCustomConfigFlow.data = {
-#         CONF_ACCESS_TOKEN: "token",
-#         CONF_REPOS: [],
-#     }
-#     _result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "repo"}
-#     )
-#     result = await hass.config_entries.flow.async_configure(
-#         _result["flow_id"],
-#         user_input={CONF_PATH: "home-assistant/core", "add_another": True},
-#     )
-#     print(result)
-#     assert "repo" == result["step_id"]
-#     assert "form" == result["type"]
+async def test_options_flow_remove_replacement(hass):
+    """Test config flow options."""
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(MOCK_CONFIG_DAYS)
+    test_data[DOMAIN].append(MOCK_CONFIG_WEEKS)
 
+    # Generate all the entity IDs
+    save_entity = generate_entity_id(
+        ENTITY_ID_FORMAT,
+        MOCK_CONFIG_DAYS[CONF_PREFIX] + MOCK_CONFIG_DAYS[CONF_NAME],
+        [],
+    )
 
-# async def test_flow_repo_creates_config_entry(hass):
-#     """Test the config entry is successfully created."""
-#     config_flow.GithubCustomConfigFlow.data = {
-#         CONF_ACCESS_TOKEN: "token",
-#         CONF_REPOS: [],
-#     }
-#     _result = await hass.config_entries.flow.async_init(
-#         config_flow.DOMAIN, context={"source": "repo"}
-#     )
-#     result = await hass.config_entries.flow.async_configure(
-#         _result["flow_id"],
-#         user_input={CONF_PATH: "home-assistant/core"},
-#     )
-#     expected = {
-#         "version": 1,
-#         "type": "create_entry",
-#         "flow_id": mock.ANY,
-#         "handler": "github_custom",
-#         "title": "GitHub Custom",
-#         "data": {
-#             "access_token": "token",
-#             "repositories": [
-#                 {"path": "home-assistant/core", "name": "home-assistant/core"}
-#             ],
-#         },
-#         "description": None,
-#         "description_placeholders": None,
-#         "result": mock.ANY,
-#     }
-#     assert expected == result
+    # Generate a config entry
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="config_entry_test",
+        data=test_data,
+    )
+
+    # Add the entry to home assistant
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Show initial options form
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    # Remove one of the entries
+    remove_data = {DOMAIN: [save_entity]}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input=remove_data,
+    )
+    assert result["type"] == "create_entry"
+    assert result["title"] == COMPONENT_NAME
+    assert result["result"] is True
+    assert result["data"] == {DOMAIN: [MOCK_CONFIG_DAYS]}

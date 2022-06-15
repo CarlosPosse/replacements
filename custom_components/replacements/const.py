@@ -1,8 +1,7 @@
 """ Constants """
-import voluptuous as vol
-
 from homeassistant.const import CONF_NAME, CONF_PREFIX, CONF_UNIT_OF_MEASUREMENT
 from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 # Integration definitions
 COMPONENT_NAME = "Replacements"
@@ -34,6 +33,16 @@ DEFAULT_ICON_TODAY = "mdi:calendar-star"
 DEFAULT_ICON_EXPIRED = "mdi:calendar-remove"
 DEFAULT_UNIT_OF_MEASUREMENT = "Days"
 DEFAULT_PREFIX = "replace_"
+
+STARTUP_MESSAGE = f"""
+-------------------------------------------------------------------
+{COMPONENT_NAME}
+Version: {VERSION}
+This is a custom integration!
+If you have any issues with this you need to open an issue here:
+{ISSUE_URL}
+-------------------------------------------------------------------
+"""
 
 # Schema Exclusions
 GROUP_INTERVAL = "interval"

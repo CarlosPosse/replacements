@@ -1,8 +1,3 @@
 # Strictly for tests
-gidgethub[aiohttp]==4.1.1
-codecov==2.1.12
-coverage==6.3.2
-pytest==7.1.1
-pytest-cov==2.12.1
-pytest-homeassistant-custom-component==0.8.6
+pytest-homeassistant-custom-component==0.9.16
 # From our manifest.json for our custom component

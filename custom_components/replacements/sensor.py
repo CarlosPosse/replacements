@@ -1,48 +1,50 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import InvalidOperation
 import logging
-import voluptuous as vol
 from typing import Any
 
-from dataclasses import dataclass
-from decimal import InvalidOperation
-from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-
 from homeassistant import config_entries
-import homeassistant.helpers.config_validation as cv
-import homeassistant.util.dt as dt_util
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.components.sensor import RestoreSensor, SensorExtraStoredData
-from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity import generate_entity_id
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.config_validation import make_entity_service_schema
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     ATTR_DATE,
-    ATTR_UNIT_OF_MEASUREMENT,
     CONF_NAME,
     CONF_UNIQUE_ID,
     CONF_UNIT_OF_MEASUREMENT,
 )
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_platform
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.config_validation import make_entity_service_schema
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import generate_entity_id
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+import homeassistant.util.dt as dt_util
+import voluptuous as vol
 
 from .const import (
-    DOMAIN,
     ATTRIBUTION,
-    PLATFORM,
     CONF_DAYS_INTERVAL,
     CONF_ICON_EXPIRED,
     CONF_ICON_NORMAL,
     CONF_ICON_SOON,
     CONF_ICON_TODAY,
-    CONF_SOON,
     CONF_PREFIX,
+    CONF_SOON,
     CONF_WEEKS_INTERVAL,
+    DEFAULT_ICON_EXPIRED,
+    DEFAULT_ICON_NORMAL,
+    DEFAULT_ICON_SOON,
+    DEFAULT_ICON_TODAY,
+    DEFAULT_SOON,
+    DEFAULT_UNIT_OF_MEASUREMENT,
+    DOMAIN,
+    PLATFORM,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,16 +54,20 @@ ATTR_DAYS_INTERVAL = "days_interval"
 ATTR_WEEKS_INTERVAL = "weeks_interval"
 ATTR_SOON = "soon"
 ATTR_STOCK = "stock"
+ATTR_NEW_DATE = "new_date"
 
 # Services
 SERVICE_STOCK = "renew_stock"
-SERVICE_STOCK_SCHEMA = make_entity_service_schema({vol.Required("stock"): int})
+SERVICE_STOCK_SCHEMA = make_entity_service_schema({vol.Required(ATTR_STOCK): int})
 SERVICE_DATE = "set_date"
-SERVICE_DATE_SCHEMA = make_entity_service_schema({vol.Required("new_date"): cv.string})
+SERVICE_DATE_SCHEMA = make_entity_service_schema(
+    {vol.Required(ATTR_NEW_DATE): cv.string}
+)
 SERVICE_REPLACED = "replace_action"
 SERVICE_REPLACED_SCHEMA = make_entity_service_schema({})
 
 # Helpers
+UNIQUE_ID_FORMAT = "{}"
 ENTITY_ID_FORMAT = PLATFORM + ".{}"
 DATA_UPDATED = "replacements_updated"
 
@@ -85,6 +91,20 @@ async def async_setup_platform(
     # Assign configuration attributes
     conf_unique_id, conf = discovery_info
     conf[CONF_UNIQUE_ID] = conf_unique_id
+
+    # Make sure everything is configured
+    if not CONF_SOON in conf:
+        conf[CONF_SOON] = DEFAULT_SOON
+    if not CONF_UNIT_OF_MEASUREMENT in conf:
+        conf[CONF_UNIT_OF_MEASUREMENT] = DEFAULT_UNIT_OF_MEASUREMENT
+    if not CONF_ICON_NORMAL in conf:
+        conf[CONF_ICON_NORMAL] = DEFAULT_ICON_NORMAL
+    if not CONF_ICON_SOON in conf:
+        conf[CONF_ICON_SOON] = DEFAULT_ICON_SOON
+    if not CONF_ICON_TODAY in conf:
+        conf[CONF_ICON_TODAY] = DEFAULT_ICON_TODAY
+    if not CONF_ICON_EXPIRED in conf:
+        conf[CONF_ICON_EXPIRED] = DEFAULT_ICON_EXPIRED
 
     # Add entity to the platform
     async_add_entities([Replacement(conf)])
@@ -123,13 +143,12 @@ async def async_setup_entry(
     # Generate a unique ID for each entity
     for entry in config[DOMAIN]:
         entry[CONF_UNIQUE_ID] = generate_entity_id(
-            ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+            UNIQUE_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
         )
 
-    async_add_entities(
-        [Replacement(entry) for entry in config[DOMAIN]],
-        update_before_add=True,
-    )
+    replacements = [Replacement(entry) for entry in config[DOMAIN]]
+
+    async_add_entities(replacements)
 
     # Get the platform reference
     platform = entity_platform.async_get_current_platform()
@@ -163,10 +182,10 @@ class ReplacementSensorExtraStoredData(SensorExtraStoredData):
         """Return a dict representation of the replacement sensor data."""
         data = super().as_dict()
 
-        data["stock"] = self.stock
-        data["next_date"] = None
+        data[ATTR_STOCK] = self.stock
+        data[ATTR_DATE] = None
         if isinstance(self.next_date, (datetime)):
-            data["next_date"] = self.next_date.isoformat()
+            data[ATTR_DATE] = self.next_date.isoformat()
         return data
 
     @classmethod
@@ -174,18 +193,18 @@ class ReplacementSensorExtraStoredData(SensorExtraStoredData):
         cls, restored: dict[str, Any]
     ) -> ReplacementSensorExtraStoredData | None:
         """Initialize a stored sensor state from a dict."""
+        # Read the default SensorExtraStoredData, i.e., the native_value and
+        # native_unit_of_measurement
         extra = SensorExtraStoredData.from_dict(restored)
         if extra is None:
             return None
 
+        # Read the rest of the parameters
         try:
-            stock: int = int(restored["stock"])
-            next_date: datetime | None = dt_util.parse_datetime(restored["next_date"])
+            stock: int = int(restored[ATTR_STOCK])
+            next_date: datetime | None = dt_util.parse_datetime(restored[ATTR_DATE])
         except KeyError:
             # restored is a dict, but does not have all values
-            return None
-        except InvalidOperation:
-            # last_period is corrupted
             return None
 
         return cls(
@@ -197,7 +216,7 @@ class Replacement(RestoreSensor):
     """Representation of a replacement sensor."""
 
     def __init__(self, replacement: dict[str, str]) -> None:
-        super().__init__()
+        """Initialize the Replacement sensor."""
 
         # Save all fields to identify the sensor
         self._unique_id = replacement[CONF_UNIQUE_ID]
@@ -251,7 +270,8 @@ class Replacement(RestoreSensor):
 
         # Recover last sensor data
         restored = await self.async_get_last_sensor_data()
-        if restored is None:
+
+        if restored is None or restored.next_date is None:
             # We need to ensure a new date is calculated if the restored
             #  data is non-existent or corrupted
             self._calculate_new_date()
@@ -262,15 +282,6 @@ class Replacement(RestoreSensor):
         self._unit_of_measurement = restored.native_unit_of_measurement
         self._stock = restored.stock
         self._date = restored.next_date
-
-        # Schedule an immediate update
-        async_dispatcher_connect(
-            self.hass, DATA_UPDATED, self._schedule_immediate_update
-        )
-
-    @callback
-    def _schedule_immediate_update(self):
-        self.async_schedule_update_ha_state(True)
 
     @property
     def unique_id(self):
@@ -296,7 +307,6 @@ class Replacement(RestoreSensor):
     def extra_state_attributes(self):
         """Return the state attributes of the sensor."""
         res = {}
-        res[ATTR_ATTRIBUTION] = ATTRIBUTION
 
         # Return the interval according to the mode
         if self._days_mode:
@@ -307,7 +317,6 @@ class Replacement(RestoreSensor):
         # Return all other attributes
         res[ATTR_DATE] = self._date.strftime("%Y-%m-%d")
         res[ATTR_STOCK] = self._stock
-        res[ATTR_UNIT_OF_MEASUREMENT] = self._unit_of_measurement
         return res
 
     @property
@@ -343,14 +352,14 @@ class Replacement(RestoreSensor):
         # Verify the date is in the correct format
         try:
             try_date = datetime.strptime(new_date, "%Y-%m-%d")
-        except ValueError:
+        except ValueError as wrong_date_format:
             _LOGGER.warning('Invalid date, please input a date in format "YYYY-MM-DD"')
-            return None
+            raise AttributeError from wrong_date_format
 
         # Make sure the new date is not in the past
         if (try_date.date() - date.today()).days < 0:
             _LOGGER.warning("Invalid date, please input a date that is not in the past")
-            return None
+            raise ValueError
 
         # Assign the new date and update the state
         self._date = try_date
@@ -371,11 +380,6 @@ class Replacement(RestoreSensor):
 
     async def async_update(self) -> None:
         """update the sensor"""
-
-        # Check for invalid date when initializing
-        if self._date is None:
-            return
-
         # Get today's date and calculate remaining days
         today = date.today()
         days_remaining = (self._date.date() - today).days

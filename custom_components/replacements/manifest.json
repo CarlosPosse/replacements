@@ -5,6 +5,6 @@
   "documentation": "https://github.com/carlosposse/Replacements",
   "dependencies": [],
   "codeowners": ["@carlosposse"],
-  "config_flow": true,
+  "config_flow": false,
   "iot_class": "calculated"
 }
