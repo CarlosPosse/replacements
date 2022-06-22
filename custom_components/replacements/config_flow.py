@@ -130,7 +130,7 @@ class ReplacementsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Validate that the name hasn't been added already
             for replacement in self.data[DOMAIN]:
                 if (CONF_NAME, user_input[CONF_NAME]) in replacement.items():
-                    errors["base"] = "name_already_exists"
+                    errors["base"] = "name_exists"
 
             if not errors:
                 # Validate some parameters

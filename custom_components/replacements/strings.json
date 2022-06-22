@@ -1,2 +1,52 @@
 {
+    "config": {
+      "error": {
+        "name_exists": "The chosen name is already registered as a replacement.",
+        "invalid_soon": "The `soon_interval` value should always be lower than the `days/weeks_interval`."
+      },
+      "step": {
+        "user": {
+          "data": {
+            "name": "Name of the sensor.",
+            "prefix": "Prefix of the name of the sensor for ID",
+            "days_interval": "Number of days between each replacement",
+            "weeks_interval": "Number of weeks between each replacement",
+            "soon_interval": "Number of days/weeks to signal a replacement is due soon",
+            "unit_of_measurement": "Unit of measurement, ex: Days, Weeks",
+            "icon_normal": "Icon to use for when a replacement is not due soon",
+            "icon_soon": "Icon to use for when a replacement is due soon",
+            "icon_today": "Icon to use for when a replacement is due today",
+            "icon_expired": "Icon to use for when a replacement should have already been performed",
+            "add_another": "Add another replacement?"
+          },
+          "description": "Add a Replacement, check the box to add another.",
+          "title": "Add Replacement"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "name_exists": "The chosen name is already registered as a replacement.",
+        "invalid_soon": "The `soon_interval` value should always be lower than the `days/weeks_interval`."
+      },
+      "step": {
+        "init": {
+          "title": "Manage Replacements",
+          "data": {
+            "replacements": "Existing Replacements: Uncheck any replacements you want to remove.",
+            "name": "Name of the sensor.",
+            "prefix": "Prefix of the name of the sensor for ID",
+            "days_interval": "Number of days between each replacement",
+            "weeks_interval": "Number of weeks between each replacement",
+            "soon_interval": "Number of days/weeks to signal a replacement is due soon",
+            "unit_of_measurement": "Unit of measurement, ex: Days, Weeks",
+            "icon_normal": "Icon to use for when a replacement is not due soon",
+            "icon_soon": "Icon to use for when a replacement is due soon",
+            "icon_today": "Icon to use for when a replacement is due today",
+            "icon_expired": "Icon to use for when a replacement should have already been performed"
+          },
+          "description": "Remove existing replacements or add a new replacement."
+        }
+      }
+    }
 }
