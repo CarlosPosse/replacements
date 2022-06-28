@@ -28,7 +28,6 @@ import homeassistant.util.dt as dt_util
 import voluptuous as vol
 
 from .const import (
-    ATTRIBUTION,
     CONF_DAYS_INTERVAL,
     CONF_ICON_EXPIRED,
     CONF_ICON_NORMAL,
@@ -37,12 +36,6 @@ from .const import (
     CONF_PREFIX,
     CONF_SOON,
     CONF_WEEKS_INTERVAL,
-    DEFAULT_ICON_EXPIRED,
-    DEFAULT_ICON_NORMAL,
-    DEFAULT_ICON_SOON,
-    DEFAULT_ICON_TODAY,
-    DEFAULT_SOON,
-    DEFAULT_UNIT_OF_MEASUREMENT,
     DOMAIN,
     PLATFORM,
 )
@@ -70,64 +63,6 @@ SERVICE_REPLACED_SCHEMA = make_entity_service_schema({})
 UNIQUE_ID_FORMAT = "{}"
 ENTITY_ID_FORMAT = PLATFORM + ".{}"
 DATA_UPDATED = "replacements_updated"
-
-
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType = None,
-) -> None:
-    """Setup the replacements sensor."""
-
-    # Check for valid discovery information
-    if discovery_info is None:
-        _LOGGER.error(
-            "This platform is not available to configure "
-            "from 'sensor:' in configuration.yaml"
-        )
-        return
-
-    # Assign configuration attributes
-    conf_unique_id, conf = discovery_info
-    conf[CONF_UNIQUE_ID] = conf_unique_id
-
-    # Make sure everything is configured
-    if not CONF_SOON in conf:
-        conf[CONF_SOON] = DEFAULT_SOON
-    if not CONF_UNIT_OF_MEASUREMENT in conf:
-        conf[CONF_UNIT_OF_MEASUREMENT] = DEFAULT_UNIT_OF_MEASUREMENT
-    if not CONF_ICON_NORMAL in conf:
-        conf[CONF_ICON_NORMAL] = DEFAULT_ICON_NORMAL
-    if not CONF_ICON_SOON in conf:
-        conf[CONF_ICON_SOON] = DEFAULT_ICON_SOON
-    if not CONF_ICON_TODAY in conf:
-        conf[CONF_ICON_TODAY] = DEFAULT_ICON_TODAY
-    if not CONF_ICON_EXPIRED in conf:
-        conf[CONF_ICON_EXPIRED] = DEFAULT_ICON_EXPIRED
-
-    # Add entity to the platform
-    async_add_entities([Replacement(conf)])
-
-    # Get the platform reference
-    platform = entity_platform.async_get_current_platform()
-
-    ## Register all platform services
-
-    # Register the stock update service
-    platform.async_register_entity_service(
-        SERVICE_STOCK, SERVICE_STOCK_SCHEMA, "async_handle_renew_stock"
-    )
-
-    # Register the set date service
-    platform.async_register_entity_service(
-        SERVICE_DATE, SERVICE_DATE_SCHEMA, "async_handle_set_date"
-    )
-
-    # Register the replacement action service
-    platform.async_register_entity_service(
-        SERVICE_REPLACED, SERVICE_REPLACED_SCHEMA, "async_handle_replace_action"
-    )
 
 
 async def async_setup_entry(

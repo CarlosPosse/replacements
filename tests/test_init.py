@@ -4,10 +4,9 @@ from __future__ import annotations
 from datetime import date, datetime
 
 # Import everything provided by home assistant and the test component
-from homeassistant.const import ATTR_DATE, CONF_NAME, CONF_PLATFORM
+from homeassistant.const import ATTR_DATE, CONF_NAME
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import generate_entity_id
-from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -18,29 +17,35 @@ from custom_components.replacements.const import (
     CONF_PREFIX,
     DOMAIN,
 )
-import custom_components.replacements.sensor as rp_sensor
-from custom_components.replacements.sensor import ENTITY_ID_FORMAT, UNIQUE_ID_FORMAT
+from custom_components.replacements.sensor import ENTITY_ID_FORMAT
 
 # Import everything from the tests
-from .const import MOCK_CONFIG_DAYS, MOCK_CONFIG_WEEKS, MOCK_YAML_DAYS
+from .const import MOCK_CONFIG_DAYS, MOCK_CONFIG_WEEKS
 
 
 async def test_restore_state(hass):
     """Test Replacements restore state."""
 
+    # Generate the entities in the entry
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(MOCK_CONFIG_DAYS)
+
     # ID for the entity
-    test_id = generate_entity_id(UNIQUE_ID_FORMAT, MOCK_YAML_DAYS[CONF_NAME], [])
-    entity_id = ENTITY_ID_FORMAT.format(test_id)
+    test_id = generate_entity_id(
+        ENTITY_ID_FORMAT,
+        MOCK_CONFIG_DAYS[CONF_PREFIX] + MOCK_CONFIG_DAYS[CONF_NAME],
+        [],
+    )
 
-    # Create mock configuration.yaml entry
-    config = {DOMAIN: {test_id: MOCK_YAML_DAYS}}
-
-    # Setup the entity
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Restore state from cache
-    state = hass.states.get(entity_id)
+    state = hass.states.get(test_id)
 
     # Get the calculated date from the new entity
     new_date: datetime | None = dt_util.parse_datetime(state.attributes[ATTR_DATE])
@@ -49,13 +54,7 @@ async def test_restore_state(hass):
     today = date.today()
     days_remaining = (new_date.date() - today).days
 
-    assert days_remaining == MOCK_YAML_DAYS[CONF_DAYS_INTERVAL]
-
-
-async def test_setup_missing_discovery(hass):
-    """Test setup with configuration missing discovery_info."""
-    assert not await rp_sensor.async_setup_platform(hass, {CONF_PLATFORM: DOMAIN}, None)
-    assert not await rp_sensor.async_setup_platform(hass, {CONF_PLATFORM: DOMAIN}, None)
+    assert days_remaining == MOCK_CONFIG_DAYS[CONF_DAYS_INTERVAL]
 
 
 async def test_setup_and_remove_config_entry_single_entity(hass) -> None:

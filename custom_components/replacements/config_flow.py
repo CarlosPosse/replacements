@@ -154,15 +154,6 @@ class ReplacementsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=ENTRY_SCHEMA, errors=errors
         )
 
-    # async def async_step_import(self, config: dict):  # pylint: disable=unused-argument
-    #     """Import a config entry.
-    #     Special type of import, we're not actually going to store any data.
-    #     Instead, we're going to rely on the values that are in config file.
-    #     """
-    #     # if self._async_current_entries():
-    #     #     return self.async_abort(reason="single_instance_allowed")
-    #     return self.async_create_entry(title="configuration.yaml", data={})
-
 
 class ReplacementsOptionsFlow(config_entries.OptionsFlow):
     """Replacements config flow options handler."""

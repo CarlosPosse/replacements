@@ -21,16 +21,6 @@ from custom_components.replacements.const import (
     DEFAULT_UNIT_OF_MEASUREMENT,
 )
 
-MOCK_YAML_DAYS = {
-    CONF_NAME: "Testing Yaml Days",
-    CONF_DAYS_INTERVAL: 10,
-}
-MOCK_YAML_WEEKS = {
-    CONF_NAME: "Testing Yaml Weeks",
-    CONF_WEEKS_INTERVAL: 2,
-    CONF_UNIT_OF_MEASUREMENT: "Weeks",
-}
-
 # Mock config data to be used across multiple tests
 MOCK_CONFIG_DAYS = {
     CONF_NAME: "Test Days 1",

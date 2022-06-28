@@ -14,7 +14,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import State
 from homeassistant.helpers.entity import generate_entity_id
-from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -45,7 +44,7 @@ from custom_components.replacements.sensor import (
 )
 
 # Import everything from the tests
-from .const import MOCK_CONFIG_DAYS, MOCK_YAML_DAYS, MOCK_YAML_WEEKS
+from .const import MOCK_CONFIG_DAYS, MOCK_CONFIG_WEEKS
 
 # from .mock_datetime import mock_datetime
 
@@ -73,8 +72,8 @@ async def test_state(hass):
     """Test replacement sensor state."""
 
     # Test entities
-    yaml_store_mock = MOCK_YAML_DAYS
-    yaml_normal_mock = MOCK_YAML_WEEKS
+    yaml_store_mock = MOCK_CONFIG_DAYS
+    yaml_normal_mock = MOCK_CONFIG_WEEKS
 
     # Definitions for state restore test
     test_store_native_value = 6
@@ -87,23 +86,32 @@ async def test_state(hass):
     test_elapsed_date = date.today() + timedelta(days=test_elapse_days)
 
     # Generate IDs for the entities
+
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(yaml_store_mock)
+    test_data[DOMAIN].append(yaml_normal_mock)
+
+    # Generate all the entity IDs
+    expected_entities = []
+    for entry in test_data[DOMAIN]:
+        expected_entities.append(
+            generate_entity_id(
+                ENTITY_ID_FORMAT, entry[CONF_PREFIX] + entry[CONF_NAME], []
+            )
+        )
+
     yaml_store_unique_id = generate_entity_id(
-        UNIQUE_ID_FORMAT, yaml_store_mock[CONF_NAME], []
+        UNIQUE_ID_FORMAT, yaml_store_mock[CONF_PREFIX] + yaml_store_mock[CONF_NAME], []
     )
     yaml_store_entity_id = ENTITY_ID_FORMAT.format(yaml_store_unique_id)
 
     yaml_normal_unique_id = generate_entity_id(
-        UNIQUE_ID_FORMAT, yaml_normal_mock[CONF_NAME], []
+        UNIQUE_ID_FORMAT,
+        yaml_normal_mock[CONF_PREFIX] + yaml_normal_mock[CONF_NAME],
+        [],
     )
     yaml_normal_entity_id = ENTITY_ID_FORMAT.format(yaml_normal_unique_id)
-
-    # Create mock configuration.yaml entry
-    config = {
-        DOMAIN: {
-            yaml_store_unique_id: yaml_store_mock,
-            yaml_normal_unique_id: yaml_normal_mock,
-        },
-    }
 
     # Setup the restore cache for just the yaml_store_entity
     # Note: we purposefully store a wrong native value, which will
@@ -133,8 +141,10 @@ async def test_state(hass):
         ],
     )
 
-    # Setup the components
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Start the home assistant instance
@@ -214,7 +224,11 @@ async def test_no_stored_extra_data(hass):
     """Test replacement sensor state."""
 
     # Test entities
-    yaml_mock = MOCK_YAML_DAYS
+    yaml_mock = MOCK_CONFIG_DAYS
+
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(yaml_mock)
 
     # Definitions for state restore test
     test_days = 5
@@ -222,11 +236,10 @@ async def test_no_stored_extra_data(hass):
     test_stock = 5
 
     # Generate IDs for the entities
-    yaml_unique_id = generate_entity_id(UNIQUE_ID_FORMAT, yaml_mock[CONF_NAME], [])
+    yaml_unique_id = generate_entity_id(
+        UNIQUE_ID_FORMAT, yaml_mock[CONF_PREFIX] + yaml_mock[CONF_NAME], []
+    )
     yaml_entity_id = ENTITY_ID_FORMAT.format(yaml_unique_id)
-
-    # Create mock configuration.yaml entry
-    config = {DOMAIN: {yaml_unique_id: yaml_mock}}
 
     # Setup the restore cache for just the yaml_store_entity
     # Note: We purposefully omit the native_value and native_unit of measurement
@@ -256,8 +269,10 @@ async def test_no_stored_extra_data(hass):
         ],
     )
 
-    # Setup the components
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Start the home assistant instance
@@ -282,7 +297,11 @@ async def test_no_stored_stock(hass):
     """Test replacement sensor state."""
 
     # Test entities
-    yaml_mock = MOCK_YAML_DAYS
+    yaml_mock = MOCK_CONFIG_DAYS
+
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(yaml_mock)
 
     # Definitions for state restore test
     test_native_value = 10
@@ -290,11 +309,10 @@ async def test_no_stored_stock(hass):
     test_date = date.today() + timedelta(days=test_days)
 
     # Generate IDs for the entities
-    yaml_unique_id = generate_entity_id(UNIQUE_ID_FORMAT, yaml_mock[CONF_NAME], [])
+    yaml_unique_id = generate_entity_id(
+        UNIQUE_ID_FORMAT, yaml_mock[CONF_PREFIX] + yaml_mock[CONF_NAME], []
+    )
     yaml_entity_id = ENTITY_ID_FORMAT.format(yaml_unique_id)
-
-    # Create mock configuration.yaml entry
-    config = {DOMAIN: {yaml_unique_id: yaml_mock}}
 
     # Setup the restore cache for just the yaml_store_entity
     # Note: We purposefully omit the stock to force a key error
@@ -321,8 +339,10 @@ async def test_no_stored_stock(hass):
         ],
     )
 
-    # Setup the components
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Start the home assistant instance
@@ -347,18 +367,21 @@ async def test_no_stored_date(hass):
     """Test replacement sensor state."""
 
     # Test entities
-    yaml_mock = MOCK_YAML_DAYS
+    yaml_mock = MOCK_CONFIG_DAYS
+
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(yaml_mock)
 
     # Definitions for state restore test
     test_native_value = 10
     test_stock = 10
 
     # Generate IDs for the entities
-    yaml_unique_id = generate_entity_id(UNIQUE_ID_FORMAT, yaml_mock[CONF_NAME], [])
+    yaml_unique_id = generate_entity_id(
+        UNIQUE_ID_FORMAT, yaml_mock[CONF_PREFIX] + yaml_mock[CONF_NAME], []
+    )
     yaml_entity_id = ENTITY_ID_FORMAT.format(yaml_unique_id)
-
-    # Create mock configuration.yaml entry
-    config = {DOMAIN: {yaml_unique_id: yaml_mock}}
 
     # Setup the restore cache for just the yaml_store_entity
     # Note: We purposefully omit the date to force a key error
@@ -385,8 +408,10 @@ async def test_no_stored_date(hass):
         ],
     )
 
-    # Setup the components
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Start the home assistant instance
@@ -411,18 +436,21 @@ async def test_wrong_stored_date(hass):
     """Test replacement sensor state."""
 
     # Test entities
-    yaml_mock = MOCK_YAML_DAYS
+    yaml_mock = MOCK_CONFIG_DAYS
+
+    test_data = {}
+    test_data[DOMAIN] = []
+    test_data[DOMAIN].append(yaml_mock)
 
     # Definitions for state restore test
     test_native_value = 10
     test_stock = 10
 
     # Generate IDs for the entities
-    yaml_unique_id = generate_entity_id(UNIQUE_ID_FORMAT, yaml_mock[CONF_NAME], [])
+    yaml_unique_id = generate_entity_id(
+        UNIQUE_ID_FORMAT, yaml_mock[CONF_PREFIX] + yaml_mock[CONF_NAME], []
+    )
     yaml_entity_id = ENTITY_ID_FORMAT.format(yaml_unique_id)
-
-    # Create mock configuration.yaml entry
-    config = {DOMAIN: {yaml_unique_id: yaml_mock}}
 
     # Setup the restore cache for just the yaml_store_entity
     # Note: We purposefully give a wrong date to force an invalid operation
@@ -449,8 +477,10 @@ async def test_wrong_stored_date(hass):
         ],
     )
 
-    # Setup the components
-    assert await async_setup_component(hass, DOMAIN, config)
+    # Setup the config entry
+    config_entry = MockConfigEntry(domain=DOMAIN, title=COMPONENT_NAME, data=test_data)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # Start the home assistant instance
