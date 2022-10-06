@@ -1,9 +1,6 @@
 """Tests for the config flow."""
 from unittest import mock
 
-from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
-from homeassistant.helpers.entity import generate_entity_id
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, patch
 
@@ -17,6 +14,9 @@ from custom_components.replacements.const import (
     DOMAIN,
 )
 from custom_components.replacements.sensor import ENTITY_ID_FORMAT
+from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
+from homeassistant.helpers.entity import generate_entity_id
 
 from .const import (
     MOCK_CONFIG_ADDITIONAL,
@@ -150,6 +150,7 @@ async def test_flow_user_creates_config_entry(hass):
         "description_placeholders": None,
         "options": {},
         "result": mock.ANY,
+        "context": {"source": "user"},
     }
     assert expected == result
 
@@ -191,6 +192,7 @@ async def test_flow_user_creates_config_entry_multiple(hass):
         "description_placeholders": None,
         "options": {},
         "result": mock.ANY,
+        "context": {"source": "user"},
     }
     assert expected == result
 
